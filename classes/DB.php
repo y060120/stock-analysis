@@ -4,13 +4,15 @@
 
 		private $_pdo, 
 				$_query, 
+				$_mysql,
 				$_error = false, 
-				$_reasults, 
+				$_results, 
 				$_count = 0;
 
 		private function __construct() {
 			try {
-				$this->_pdo = new PDO('mysql:host=' . Config::get('mysql/host') . ';dbname=' . Config::get('mysql/db'), Config::get('mysql/username'), Config::get('mysql/password'));
+				$this->_pdo 	= new PDO('mysql:host=' . Config::get('mysql/host') . ';dbname=' . Config::get('mysql/db'), Config::get('mysql/username'), Config::get('mysql/password'));
+				$this->_mysql 	= mysqli_connect(Config::get('mysql/host'), Config::get('mysql/username'), Config::get('mysql/password'), Config::get('mysql/db'));
 				//echo 'success';
 			} catch(PDOException $e) {
 				die($e->getmessage());
@@ -23,125 +25,83 @@
 			}
 			return self::$_instance;
 		}   
-		
+			
+		public function insert($table, $fields = array()) {						
+			
+			$keys 	= array_values($fields[0]); // fetching columns that needed to be inserted into the database	
+			$removed_first_element = array_shift($fields);			
+			$values = array();
+			$x = 1;		
+			
+			$stockResult 	= $this->countData('stock');			
 
-		//customize functionality query
-		public function query($sql, $params = array()) {
-			$this->_error = false;
-			if($this->_query = $this->_pdo->prepare($sql)) {
-				$x = 1;
-				if(count($params)) {
-					foreach ($params as $param) {
-						$this->_query->bindValue($x, $param);
-						$x++;
-					}
+			if(isset($stockResult['total']) && $stockResult['total'] <= 0){
+				foreach($fields as $key => $field) {	
+					if($x < count($fields)) {
+						$d = $x++;
+						$values[] = "($d,STR_TO_DATE('$field[1]', '%d-%m-%Y'),'$field[2]',$field[3])";
+					}				
 				}
 
-				if($this->_query->execute()) {
-					$this->_results = $this->_query->fetchAll(PDO::FETCH_OBJ);
-					$this->_count = $this->_query->rowCount();
-				} else {
-					$this->_error = true;
+				$inserted_data = implode(',', $values);
+				$sql = "INSERT INTO {$table} (`" . implode('`, `', $keys) . "`) VALUES {$inserted_data}";			
+				
+				if (mysqli_query($this->_mysql, $sql)){
+					$Errordata = array("success"=>"Data Added Successfully");
+					return $Errordata;
+				}else{
+					echo "Error: " . $sql . "<br>" . mysqli_error($this->_mysql);
 				}
+				return false;
+
+			}else{							
+				$Errordata = array("error"=>"Existing Datas Found Clear Data Before Proceeding");				
+				return $Errordata;	
 			}
-			return $this;
+		}	
+
+		public function countData($table){
+			$selectCount 	= "SELECT count(*) as total FROM $table";  // fetching existing stock list
+			$countRows 		= mysqli_query($this->_mysql, $selectCount);
+			$stockResult 	= $countRows->fetch_assoc();
+			return $stockResult;
 		}
-
-		public function action($action, $table, $where = array()) {
-			if(count($where) === 3) {
-				$operators = array('=', '>', '<', '>=', '<=');
-
-				$field	   = $where[0];
-				$operator  = $where[1];
-				$value     = $where[2];
-
-				if(in_array($operator, $operators)) {
-					$sql = "{$action} FROM {$table} WHERE {$field} {$operator} ?";
-					if(!$this->query($sql, array($value))->error()) {
-						return $this;
-					}
-				}
-			}
-			return false;
+		public function ClearData($table){
+			$delete 	= "Delete FROM $table";  // Deleting existing stock list
+			$countRows 	= mysqli_query($this->_mysql, $delete);			
+			return $countRows;
 		}
-
-		public function get($table, $where) {
-			return $this->action('SELECT *', $table, $where);
+		public function distinctData($fieldName,$table){
+			$distinct 		= "Select Distinct $fieldName from $table";  // fetch distinct stock names for dropdown
+			$distinctRows 	= mysqli_query($this->_mysql, $distinct);
+			//$distinctResult = $distinctRows->fetch_assoc();			
+			return $distinctRows;
 		}
+		public function calculateRangeQuery($stockName,$dateFrom,$dateTo,$table){
+			//echo $stockName.','.$dateFrom.','.$dateTo.','.$table;
+			$stockName 		  	= trim($stockName, "*");
+			$newArray			= array();
+			$rangeCalculation = "Select * from $table where stock_name = '$stockName' AND date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') ORDER BY date ASC";
+			
+			// $rangeCalculation 	= "SELECT (
+			// 								select json_object('minStockPrice',price,'purchaseDate',date) as name from $table 
+			// 								where stock_name = '$stockName' AND 
+			// 								date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') 
+			// 								ORDER BY price ASC LIMIT 1
+			// 							  )as lowStockPrice,
+			// 							  (
+			// 								select json_object('maxStockPrice',price,'purchaseDate',date) as stock from $table 
+			// 								where stock_name = '$stockName' AND 
+			// 								date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') 
+			// 								ORDER BY price DESC LIMIT 1
+			// 							  )as highStockPrice";
 
-		public function delete($table, $where) {
-			return $this->action('DELETE', $table, $where);
+			$dataCalculated   	= mysqli_query($this->_mysql, $rangeCalculation);	
+
+			while($row = $dataCalculated->fetch_assoc()){ // fetching into newarray because needs to manipulate data in foreach
+				$newArray[] = $row;
+		   }		   
+			return $newArray;
 		}
-
-		public function insert($table, $fields = array()) {
-			// if(count($fields)) {
-			$keys = array_keys($fields);
-			$values = '';
-			$x = 1;
-
-			foreach($fields as $field) {
-				$values .= "?";
-
-				if($x < count($fields)) {
-					$values .= ', ';
-				}
-				$x++;
-			}
-
-			//die($values);
-			$sql = "INSERT INTO {$table} (`" . implode('`, `', $keys) . "`) VALUES ({$values})";
-			//echo $sql;
-			if(!$this->query($sql, $fields)->error()) {
-				return true;
-			}
-			// }
-			return false;
-		}
-
-		public function update($table, $id, $fields) {
-			$set = '';
-			$x = 1;
-
-			foreach($fields as $name => $value) {
-				$set .= "{$name} = ?";
-				if($x < count($fields)) {
-					$set .= ', ';
-				}
-				$x++;
-
-			}
-
-			$sql = "UPDATE {$table} SET {$set} WHERE id = {$id}";
-
-			if(!$this->query($sql, $fields)->error()) {
-				return true;
-			}
-			return false;
-
-		}
-
-		public function results() {
-			return $this->_results;
-		}
-
-		public function first() {
-			return $this->results()[0];
-		}
-
-		public function error() {
-			return $this->_error;
-		}
-
-		public function count() {
-			return $this->_count;
-		}
-
-		public static function pdo() {
-			return $this->_pdo;
-		}
-
-
-
-
 	}
 ?>
