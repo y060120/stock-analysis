@@ -43,8 +43,8 @@
 					}				
 				}
 
-				$inserted_data = implode(',', $values);
-				$sql = "INSERT INTO {$table} (`" . implode('`, `', $keys) . "`) VALUES {$inserted_data}";			
+			$inserted_data = implode(',', $values);
+			$sql = "INSERT INTO {$table} (`" . implode('`, `', $keys) . "`) VALUES {$inserted_data}";			
 				
 				if (mysqli_query($this->_mysql, $sql)){
 					$Errordata = array("success"=>"Data Added Successfully");
@@ -53,7 +53,6 @@
 					echo "Error: " . $sql . "<br>" . mysqli_error($this->_mysql);
 				}
 				return false;
-
 			}else{							
 				$Errordata = array("error"=>"Existing Datas Found Clear Data Before Proceeding");				
 				return $Errordata;	

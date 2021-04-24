@@ -198,7 +198,7 @@ else{
 </div>
 
 <script>
-$(document).ready(function() {
+$(document).ready(function() {  // datepicker function
     $('#datepickerFrom').datepick();
     $('#datepickerTo').datepick();
 });
@@ -209,6 +209,10 @@ $(document).ready(function() {
         var password    = "<?php echo Config::get('mysql/password'); ?>";
         var db          = "<?php echo Config::get('mysql/db'); ?>";      
 
+        var r = confirm("Confirm Click!");
+        if (r == true) {
+
+            let myPromise = new Promise(function(myResolve, myReject) {
                 $.ajax({
                         url: 'classes/Functions.php',
                         type: 'POST',
@@ -216,10 +220,18 @@ $(document).ready(function() {
                         success:function(res){
                             var result = JSON.parse(res);
                             if(result.success){
-                                alert(result.success);                                
+                                myResolve(result.success);                                
                             }                           
                         }
                     });
+            });
+
+            myPromise.then(
+                function(value) {alert(value)},
+                function(error) {}
+            );
+                
+        }   
     }
 </script>
 

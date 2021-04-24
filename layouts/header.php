@@ -10,7 +10,7 @@
             box-shadow: none !important;
         }
     </style>
-        <title>Crysis Stock Analysis</title>
+        <title>Stock Analysis</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         <!-- Bootstrap -->    
@@ -35,7 +35,7 @@
             <div class="main-content-centered">
                 
                 <div class="logo-container">
-                    <h1>Stock Trading</h1>                    
+                    <h1>Stock Trading Analysis</h1>                    
                 </div>
                 <div class="link-top-container">
 
