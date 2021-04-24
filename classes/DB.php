@@ -73,31 +73,16 @@
 		}
 		public function distinctData($fieldName,$table){
 			$distinct 		= "Select Distinct $fieldName from $table";  // fetch distinct stock names for dropdown
-			$distinctRows 	= mysqli_query($this->_mysql, $distinct);
-			//$distinctResult = $distinctRows->fetch_assoc();			
+			$distinctRows 	= mysqli_query($this->_mysql, $distinct);			
 			return $distinctRows;
 		}
 		public function calculateRangeQuery($stockName,$dateFrom,$dateTo,$table){
-			//echo $stockName.','.$dateFrom.','.$dateTo.','.$table;
+		
 			$stockName 		  	= trim($stockName, "*");
 			$newArray			= array();
 			$rangeCalculation = "Select * from $table where stock_name = '$stockName' AND date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') ORDER BY date ASC";
-			
-			// $rangeCalculation 	= "SELECT (
-			// 								select json_object('minStockPrice',price,'purchaseDate',date) as name from $table 
-			// 								where stock_name = '$stockName' AND 
-			// 								date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') 
-			// 								ORDER BY price ASC LIMIT 1
-			// 							  )as lowStockPrice,
-			// 							  (
-			// 								select json_object('maxStockPrice',price,'purchaseDate',date) as stock from $table 
-			// 								where stock_name = '$stockName' AND 
-			// 								date between STR_TO_DATE('$dateFrom','%m/%d/%Y') and STR_TO_DATE('$dateTo','%m/%d/%Y') 
-			// 								ORDER BY price DESC LIMIT 1
-			// 							  )as highStockPrice";
 
 			$dataCalculated   	= mysqli_query($this->_mysql, $rangeCalculation);	
-
 			while($row = $dataCalculated->fetch_assoc()){ // fetching into newarray because needs to manipulate data in foreach
 				$newArray[] = $row;
 		   }		   

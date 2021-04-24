@@ -12,14 +12,20 @@
                     <form action="" method="post" enctype="multipart/form-data">  
 <?php 
                         $function = new Functions();
-                            try{                                
-                                    if(isset($_FILES['formFile']['tmp_name']) && is_uploaded_file($_FILES['formFile']['tmp_name'])){
-                                        $data = input::get('formFile');                        
-                                        $result = $function->csv_extraction($data['tmp_name']);  // csv extraction and form array
-                                        $errorList = $function->create($result);                //check existing datas in database and insert into the db   
-                                    }
-                                }
-                            catch (Exception $error){
+                            try{       
+                                    $mimes = array('application/vnd.ms-excel','text/plain','text/csv','text/tsv');  
+
+                                        if(isset($_FILES['formFile']['tmp_name']) && is_uploaded_file($_FILES['formFile']['tmp_name'])){
+                                            if(in_array($_FILES['formFile']['type'],$mimes)){      
+                                                $data       = input::get('formFile');                        
+                                                $result     = $function->csv_extraction($data['tmp_name']); // csv extraction and form array
+                                                $errorList  = $function->create($result);                   // check existing datas in database and insert into the db   
+                                            }else{
+                                                $errorList  = array("error"=>"Invalid File Format Only CSV Supported");
+                                            }
+                                        }
+                                }                                
+                                catch (Exception $error){
                                     die($error->getMessage());
                                 }
 ?>       
@@ -37,35 +43,27 @@
                             <form>
 <?php 
                             try{
-                                $function = new Functions();
-                                $count = $function->checkEnableClearData();
-                                if(isset($count['total']) && $count['total'] > 0){
-                                    echo "<input type='button' onclick='clearAllDataform()' value='Clear Data' name='submit' class='btn btn-danger'>";                                   
-
-                                }else{
-                                    echo "<input type='button' value='Clear Data' name='submit' class='btn btn-danger' disabled>";
-                                }  
-                            }catch(Exception $error){
-                                die($error->getMessage());
-                            }   
-                              
+                                    $function = new Functions();
+                                    $count = $function->checkEnableClearData();
+                                    if(isset($count['total']) && $count['total'] > 0){
+                                        echo "<input type='button' onclick='clearAllDataform()' value='Clear Data' name='submit' class='btn btn-danger'>";  
+                                    }else{
+                                        echo "<input type='button' value='Clear Data' name='submit' class='btn btn-danger' disabled>";
+                                    }  
+                                }catch(Exception $error){
+                                    die($error->getMessage());
+                                } 
 ?>                                
                             </form>
                         </div>      
-                        <div class="col">  
-                            
+                        <div class="col"> 
 <?php
                             if(isset($errorList['error']) && $errorList['error'] != ''){    // error messages and success messages
-
-                                echo "<div class='alert alert-danger'>". $errorList['error']."</div>" ;
-
+                                echo "<div class='alert alert-danger'>". $errorList['error']."</div>";
                             }else if(isset($errorList['success']) && $errorList['success'] != ''){
-
-                                echo "<div class='alert alert-success'>". $errorList['success']."</div>" ;
-
+                                echo "<div class='alert alert-success'>". $errorList['success']."</div>";
                             }
-?>
-                            </div>
+?>                      </div>
                         </div>       
                     </div>
                 </div>    
@@ -81,7 +79,7 @@
     $distinctValues = $function->distinctValues();   
 ?>
     <form method="post" action="">
-        <div class="jumbotron" style="background-color: #eee; border-radius:10px; height:550px;">
+        <div class="jumbotron" style="background-color: #eee; border-radius:10px; height:650px;">
             <h1>&nbsp;Select Stock Range</h1>   
             <div class="row" style="padding: 30px;">
                 <div class="col">      
@@ -103,10 +101,7 @@
 
                 if($stockName && $fromRange && $toRange){
                     try{                        
-                        $result = $function->calculateRange($stockName,$fromRange,$toRange);
-                        echo "<pre>";
-                        print_r($result);
-                        die();
+                        $result = $function->calculateRange($stockName,$fromRange,$toRange);                        
                     }catch(Exception $error){
                         die($error->getMessage());
                     }                    
@@ -126,39 +121,78 @@
                 </div>
             </div>  
             <br>
+<?php 
+        if(isset($result['marketStatus']) && $result['marketStatus'] != ''){
+            echo "<h4 style='margin: 1em;'>".$result['stockName']."</h4>"
+?>
+
             <div class="row" style="padding: 30px;">
                 <div class="col">
-                    <label>Stock Should Have Purchased On(Purchase Date): </label>
+                    <label>Stock Purchase Date : </label>
                 </div>
                 <div class="col">
-                    <span class="badge bg-primary">Primary Date</span>
+                    <span class="badge bg-primary">
+<?php                   echo $result['purchaseDate'];
+?>                  </span>
                 </div>
                 <div class="col">   
                     <label> Stock Price on Purchased Date  </label>                 
                 </div>
                 <div class="col">         
-                    <span class="badge bg-primary">Min Price</span>           
+                    <span class="badge bg-primary">
+<?php               echo $result['purchasePrice'];
+?>                </span>           
                 </div>
             </div> 
             <div class="row" style="padding: 30px;">
                 <div class="col">
-                    <label>Stock Should Have Sold On(Sold Date): </label>
+                    <label>Stock Sold Date: </label>
                 </div>
                 <div class="col">
-                    <span class="badge bg-primary">Primary Date</span>
+                    <span class="badge bg-primary">
+<?php                   echo $result['soldDate'];
+?>                  </span>
                 </div>
                 <div class="col">   
                     <label> Stock Price on Sold Date  </label>                 
                 </div>
                 <div class="col">         
-                    <span class="badge bg-primary">Max Price</span>           
+                    <span class="badge bg-primary">
+<?php                   echo $result['soldPrice'];
+?>                  </span>           
                 </div>
             </div> 
+            <div class="row" style="padding:30px;">
+                <div class="col" style="margin-left: 20em;">
+                    OVERALL STATUS
+                </div>    
+                <div class="col" style="margin-right: 26em;">
+<?php           if($result['marketStatus'] == 'Loss'){
+                     echo "<div class='alert alert-danger' style='width: 100%; margin: auto;'><span class='badge bg-danger'>". $result['marketStatus']."</span> <span class='badge bg-info'>Loss Amount =".$result['totalAmount']."</div>" ;
+                }else{
+                    echo "<div class='alert alert-success' style='width: 100%; margin: auto;'><span class='badge bg-warning'>". $result['marketStatus']."</span> <span class='badge bg-info'>Profit Amount =".$result['totalAmount']."</span></div>" ;
+                }
+?>              </div>
+             </div>
+             <div class="row">
+                <div class="col">                
+<?php           if($result['marketStatus'] == 'Loss'){
+                        echo "<div class='alert alert-danger' style='width: 100%; margin: auto;'>To Maximize Profit he should sold the Stock on <span class='badge bg-info'>". $result['maxPriceDate']."</span> <span class='badge bg-info'>For Amount =".$result['maxPrice']."</span> Profit amount would be <span class='badge bg-info'>".$result['analysisPrice']."</span></div>" ;
+                    }else{
+                        echo "<div class='alert alert-success' style='width: 100%; margin: auto;'>Loss Avoided by Selling in Profit</div>" ;
+                    }
+?>              </div>  
+              </div> 
+<?php  } 
+        else if(isset($result['msg'])){
+            echo "<div class='alert alert-danger' style='width: 50%; margin: auto;'>". $result['msg']."</div>" ;
+        }
+ ?>           
         </div>
     </form>  
 <?php }
 else{
-    echo "<div class='alert alert-danger'>No Stock List Found To Calculate Range</div>";
+    echo "<div class='alert alert-danger'>No Stock List Found! to Calculate range kindly Upload CSV file to continue!</div>";
 }
 ?>    
 </div>

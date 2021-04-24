@@ -58,46 +58,53 @@ if(isset($_POST['class'])){
 			$newArray		= array();
 			$maxPrice		= 0;
 			$maxPriceDate 	= '';
-			
-			$arrayCount = count($rangeCalculate);
-			foreach($rangeCalculate as $key=>$data){	
-					if($data['price'] > $maxPrice){   // Find Max Price and its Purchased Date
-						$maxPrice 		= $data['price'];
-						$maxPriceDate 	= $data['date'];
+			try{			
+				$arrayCount = count($rangeCalculate);
+				if($arrayCount > 0){
+
+					foreach($rangeCalculate as $key=>$data){	
+							if($data['price'] > $maxPrice){   // Find Max Price and its Purchased Date
+								$maxPrice 		= $data['price'];
+								$maxPriceDate 	= $data['date'];
+							}
 					}
+					$purchasePrice  = $rangeCalculate[0]['price'];     // fetching purchased price and date
+					$purchaseDate   = $rangeCalculate[0]['date'];
+
+					$soldPrice 		= $rangeCalculate[$arrayCount-1]['price']; // fetching sold price and date
+					$soldDate 		= $rangeCalculate[$arrayCount-1]['date'];
+
+					$analysisPrice	= $maxPrice - $purchasePrice;     // stock analysis price
+
+					if($purchasePrice > $soldPrice){   // calculate profit or loss with their amout differences
+						$marketStatus 	= 'Loss';
+						$totalAmount  	= $purchasePrice - $soldPrice;
+					}else{
+						$marketStatus 	= 'Profit';
+						$totalAmount	= $soldPrice - $purchasePrice;
+					}	
+					
+					$overAllStockData = array(        //  form array with relevant data
+						"stockName"		=>  $stockName,
+						"maxPrice" 		=> 	$maxPrice,
+						"maxPriceDate" 	=> 	$maxPriceDate,
+						"purchasePrice" => 	$purchasePrice,
+						"purchaseDate" 	=> 	$purchaseDate,
+						"soldPrice"		=> 	$soldPrice,
+						"soldDate"		=> 	$soldDate,
+						"marketStatus"	=>	$marketStatus,
+						"totalAmount"	=>	$totalAmount,
+						"analysisPrice"	=>  $analysisPrice
+					);
+					return $overAllStockData;
+
+				}else{
+					$noDataFound = array('msg' => 'No Data found for the given Date range');
+					return $noDataFound;
+				}
+			}catch(Exception $error){
+				die($error->getMessage());
 			}
-			$purchasePrice  = $rangeCalculate[0]['price'];     // fetching purchased price and date
-			$purchaseDate   = $rangeCalculate[0]['date'];
-
-			$soldPrice 		= $rangeCalculate[$arrayCount-1]['price']; // fetching sold price and date
-			$soldDate 		= $rangeCalculate[$arrayCount-1]['date'];
-
-			$analysisPrice	= $maxPrice - $purchasePrice;     // stock analysis price
-
-
-
-			if($purchasePrice > $soldPrice){   // calculate profit or loss with their amout differences
-				$marketStatus 	= 'Loss';
-				$totalAmount  	= $purchasePrice - $soldPrice;
-			}else{
-				$marketStatus 	= 'Profit';
-				$totalAmount	= $soldPrice - $purchasePrice;
-			}	
-			
-			$overAllStockData = array(        //  form array with relevant data
-				"stockName"		=>  $stockName,
-				"maxPrice" 		=> 	$maxPrice,
-				"maxPriceDate" 	=> 	$maxPriceDate,
-				"purchasePrice" => 	$purchasePrice,
-				"purchaseDate" 	=> 	$purchaseDate,
-				"soldPrice"		=> 	$soldPrice,
-				"soldDate"		=> 	$soldDate,
-				"marketStatus"	=>	$marketStatus,
-				"totalAmount"	=>	$totalAmount,
-				"analysisPrice"	=>  $analysisPrice
-			);
-			
-			return $overAllStockData;
 		}
 	}
 ?>
